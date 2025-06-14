@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cifrador/Descifrador de Archivos</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input[type="file"],
+        .form-group input[type="password"],
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Cifrador de Archivos</h1>
+            <p>Cifra y descifra tus archivos de forma segura</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('encrypt')">Cifrar</button>
+            <button class="tab" onclick="switchTab('decrypt')">Descifrar</button>
+        </div>
+
+        <div id="encrypt-tab" class="tab-content active">
+            <form id="encrypt-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="encrypt-file">Seleccionar archivo a cifrar:</label>
+                    <input type="file" id="encrypt-file" name="file" required>
+                    <div id="encrypt-file-info" class="file-info" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="encrypt-password">Contraseña:</label>
+                    <input type="password" id="encrypt-password" name="password" placeholder="Ingresa una contraseña segura" required>
+                </div>
+                
+                <button type="submit" class="btn">🔒 Cifrar Archivo</button>
+            </form>
+        </div>
+
+        <div id="decrypt-tab" class="tab-content">
+            <form id="decrypt-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="decrypt-file">Seleccionar archivo cifrado (.enc):</label>
+                    <input type="file" id="decrypt-file" name="file" accept=".enc" required>
+                    <div id="decrypt-file-info" class="file-info" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="decrypt-password">Contraseña:</label>
+                    <input type="password" id="decrypt-password" name="password" placeholder="Ingresa la contraseña para descifrar" required>
+                </div>
+                
+                <button type="submit" class="btn">🔓 Descifrar Archivo</button>
+            </form>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Procesando archivo...</p>
+        </div>
+
+        <div id="result" class="result"></div>
+    </div>    <script>
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+
+            hideResult();
+        }
+
+        function showResult(message, isSuccess = true) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.style.display = 'block';
+        }
+
+        function hideResult() {
+            document.getElementById('result').style.display = 'none';
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function updateFileInfo(inputId, infoId) {
+            const input = document.getElementById(inputId);
+            const info = document.getElementById(infoId);
+            
+            if (input.files.length > 0) {
+                const file = input.files[0];
+                const size = (file.size / 1024 / 1024).toFixed(2);
+                info.innerHTML = `📄 ${file.name} (${size} MB)`;
+                info.style.display = 'block';
+            } else {
+                info.style.display = 'none';
+            }
+        }
+
+        document.getElementById('encrypt-file').addEventListener('change', function() {
+            updateFileInfo('encrypt-file', 'encrypt-file-info');
+        });
+
+        document.getElementById('decrypt-file').addEventListener('change', function() {
+            updateFileInfo('decrypt-file', 'decrypt-file-info');
+        });
+
+        document.getElementById('encrypt-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('encrypt-file');
+            const password = document.getElementById('encrypt-password').value;
+            
+            if (!fileInput.files[0]) {
+                showResult('Por favor selecciona un archivo', false);
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            formData.append('password', password);
+            
+            showLoading();
+            hideResult();
+            
+            try {
+                const response = await fetch('/encrypt', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const originalName = fileInput.files[0].name;
+                    const encryptedName = originalName + '.enc';
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = encryptedName;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    showResult('Archivo cifrado exitosamente y descargado como: ' + encryptedName);
+                    document.getElementById('encrypt-form').reset();
+                    document.getElementById('encrypt-file-info').style.display = 'none';
+                } else {
+                    const error = await response.text();
+                    showResult('Error al cifrar: ' + error, false);
+                }
+            } catch (error) {
+                showResult('Error de conexión: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.getElementById('decrypt-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('decrypt-file');
+            const password = document.getElementById('decrypt-password').value;
+            
+            if (!fileInput.files[0]) {
+                showResult('Por favor selecciona un archivo cifrado', false);
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            formData.append('password', password);
+            
+            showLoading();
+            hideResult();
+            
+            try {
+                const response = await fetch('/decrypt', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    let decryptedName = fileInput.files[0].name;
+
+                    if (decryptedName.endsWith('.enc')) {
+                        decryptedName = decryptedName.slice(0, -4);
+                    } else {
+                        decryptedName = 'descifrado_' + decryptedName;
+                    }
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = decryptedName;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    showResult('Archivo descifrado exitosamente y descargado como: ' + decryptedName);
+                    document.getElementById('decrypt-form').reset();
+                    document.getElementById('decrypt-file-info').style.display = 'none';
+                } else {
+                    const error = await response.text();
+                    showResult('Error al descifrar: ' + error, false);
+                }
+            } catch (error) {
+                showResult('Error de conexión: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
+        });
+    </script>
+</body>
+</html>
