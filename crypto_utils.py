@@ -193,3 +193,34 @@ def decrypt_file(input_path: str, password: str, output_path: str):
             raise e
         else:
             raise ValueError("Error al descifrar el archivo: Contraseña incorrecta o archivo corrupto")
+
+def manual_derive_key(password: str, length: int) -> bytes:
+    """Deriva una clave simple usando SHA-256 repetido (solo para XOR manual)."""
+    key = hashlib.sha256(password.encode()).digest()
+    while len(key) < length:
+        key += hashlib.sha256(key).digest()
+    return key[:length]
+
+def manual_encrypt_file(input_path: str, password: str, output_path: str):
+    """Cifra un archivo usando XOR simple (NO SEGURO, solo educativo)."""
+    with open(input_path, "rb") as f:
+        plaintext = f.read()
+    key = manual_derive_key(password, len(plaintext))
+    ciphertext = bytes([b ^ k for b, k in zip(plaintext, key)])
+    hash_plaintext = sha256_hash(plaintext).encode()
+    with open(output_path, "wb") as f:
+        f.write(hash_plaintext)
+        f.write(ciphertext)
+
+def manual_decrypt_file(input_path: str, password: str, output_path: str):
+    """Descifra un archivo cifrado con XOR simple y verifica integridad."""
+    with open(input_path, "rb") as f:
+        stored_hash = f.read(64)
+        ciphertext = f.read()
+    key = manual_derive_key(password, len(ciphertext))
+    plaintext = bytes([c ^ k for c, k in zip(ciphertext, key)])
+    computed_hash = sha256_hash(plaintext).encode()
+    if computed_hash != stored_hash:
+        raise ValueError("Contraseña incorrecta o archivo corrupto")
+    with open(output_path, "wb") as f:
+        f.write(plaintext)

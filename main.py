@@ -21,7 +21,7 @@ El programa solicitará:
 
 """
 
-from crypto_utils import encrypt_file, decrypt_file
+from crypto_utils import encrypt_file, decrypt_file, manual_encrypt_file, manual_decrypt_file
 
 def main():
     """
@@ -44,9 +44,11 @@ def main():
     - Cualquier otra entrada: Mensaje de error
     """
     print("=== Cifrador/Descifrador de Archivos ===")
-    print("1. Cifrar archivo")
-    print("2. Descifrar archivo")
-    choice = input("Seleccione una opción (1 o 2): ")
+    print("1. Cifrar archivo (AES seguro)")
+    print("2. Descifrar archivo (AES seguro)")
+    print("3. Cifrar archivo (XOR manual, NO seguro)")
+    print("4. Descifrar archivo (XOR manual, NO seguro)")
+    choice = input("Seleccione una opción (1, 2, 3 o 4): ")
 
     if choice == '1':
         print("\n--- Cifrado de Archivo ---")
@@ -84,8 +86,38 @@ def main():
             print("Error: No tienes permisos para acceder a los archivos especificados.")
         except Exception as e:
             print(f"Error inesperado: {str(e)}")
+    elif choice == '3':
+        print("\n--- Cifrado Manual XOR (NO SEGURO) ---")
+        input_file = input("Ruta del archivo a cifrar: ")
+        password = input("Contraseña: ")
+        output_file = input("Ruta del archivo cifrado (.xor): ")
+        try:
+            manual_encrypt_file(input_file, password, output_file)
+            print(f"Archivo cifrado manualmente y guardado en: {output_file}")
+        except FileNotFoundError:
+            print("Error: El archivo especificado no existe.")
+        except PermissionError:
+            print("Error: No tienes permisos para acceder a los archivos especificados.")
+        except Exception as e:
+            print(f"Error al cifrar manualmente el archivo: {str(e)}")
+    elif choice == '4':
+        print("\n--- Descifrado Manual XOR (NO SEGURO) ---")
+        input_file = input("Ruta del archivo cifrado (.xor): ")
+        password = input("Contraseña: ")
+        output_file = input("Ruta para guardar el archivo descifrado: ")
+        try:
+            manual_decrypt_file(input_file, password, output_file)
+            print(f"Archivo descifrado manualmente y guardado en: {output_file}")
+        except ValueError as e:
+            print(f"Error de validación: {str(e)}")
+        except FileNotFoundError:
+            print("Error: El archivo cifrado especificado no existe.")
+        except PermissionError:
+            print("Error: No tienes permisos para acceder a los archivos especificados.")
+        except Exception as e:
+            print(f"Error inesperado: {str(e)}")
     else:
-        print("Opción no válida. Por favor selecciona 1 o 2.")
+        print("Opción no válida. Por favor selecciona 1, 2, 3 o 4.")
 
 if __name__ == "__main__":
     try:

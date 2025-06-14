@@ -191,6 +191,8 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('encrypt')">Cifrar</button>
             <button class="tab" onclick="switchTab('decrypt')">Descifrar</button>
+            <button class="tab" onclick="switchTab('manual-encrypt')">Cifrado XOR</button>
+            <button class="tab" onclick="switchTab('manual-decrypt')">Descifrado XOR</button>
         </div>
 
         <div id="encrypt-tab" class="tab-content active">
@@ -224,6 +226,36 @@
                 </div>
                 
                 <button type="submit" class="btn">🔓 Descifrar Archivo</button>
+            </form>
+        </div>
+
+        <div id="manual-encrypt-tab" class="tab-content">
+            <form id="manual-encrypt-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="manual-encrypt-file">Seleccionar archivo a cifrar (XOR):</label>
+                    <input type="file" id="manual-encrypt-file" name="file" required>
+                    <div id="manual-encrypt-file-info" class="file-info" style="display: none;"></div>
+                </div>
+                <div class="form-group">
+                    <label for="manual-encrypt-password">Contraseña:</label>
+                    <input type="password" id="manual-encrypt-password" name="password" placeholder="Ingresa una contraseña" required>
+                </div>
+                <button type="submit" class="btn">🔒 Cifrar XOR</button>
+            </form>
+        </div>
+
+        <div id="manual-decrypt-tab" class="tab-content">
+            <form id="manual-decrypt-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="manual-decrypt-file">Seleccionar archivo cifrado (.xor):</label>
+                    <input type="file" id="manual-decrypt-file" name="file" accept=".xor" required>
+                    <div id="manual-decrypt-file-info" class="file-info" style="display: none;"></div>
+                </div>
+                <div class="form-group">
+                    <label for="manual-decrypt-password">Contraseña:</label>
+                    <input type="password" id="manual-decrypt-password" name="password" placeholder="Ingresa la contraseña para descifrar" required>
+                </div>
+                <button type="submit" class="btn">🔓 Descifrar XOR</button>
             </form>
         </div>
 
@@ -289,6 +321,14 @@
 
         document.getElementById('decrypt-file').addEventListener('change', function() {
             updateFileInfo('decrypt-file', 'decrypt-file-info');
+        });
+
+        document.getElementById('manual-encrypt-file').addEventListener('change', function() {
+            updateFileInfo('manual-encrypt-file', 'manual-encrypt-file-info');
+        });
+
+        document.getElementById('manual-decrypt-file').addEventListener('change', function() {
+            updateFileInfo('manual-decrypt-file', 'manual-decrypt-file-info');
         });
 
         document.getElementById('encrypt-form').addEventListener('submit', async function(e) {
@@ -392,6 +432,115 @@
                 } else {
                     const error = await response.text();
                     showResult('Error al descifrar: ' + error, false);
+                }
+            } catch (error) {
+                showResult('Error de conexión: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.getElementById('manual-encrypt-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('manual-encrypt-file');
+            const password = document.getElementById('manual-encrypt-password').value;
+            
+            if (!fileInput.files[0]) {
+                showResult('Por favor selecciona un archivo', false);
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            formData.append('password', password);
+            
+            showLoading();
+            hideResult();
+            
+            try {
+                const response = await fetch('/manual_encrypt', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const originalName = fileInput.files[0].name;
+                    const encryptedName = originalName + '.xor';
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = encryptedName;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    showResult('Archivo cifrado exitosamente (XOR) y descargado como: ' + encryptedName);
+                    document.getElementById('manual-encrypt-form').reset();
+                    document.getElementById('manual-encrypt-file-info').style.display = 'none';
+                } else {
+                    const error = await response.text();
+                    showResult('Error al cifrar (XOR): ' + error, false);
+                }
+            } catch (error) {
+                showResult('Error de conexión: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.getElementById('manual-decrypt-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('manual-decrypt-file');
+            const password = document.getElementById('manual-decrypt-password').value;
+            
+            if (!fileInput.files[0]) {
+                showResult('Por favor selecciona un archivo cifrado', false);
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            formData.append('password', password);
+            
+            showLoading();
+            hideResult();
+            
+            try {
+                const response = await fetch('/manual_decrypt', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    let decryptedName = fileInput.files[0].name;
+
+                    if (decryptedName.endsWith('.xor')) {
+                        decryptedName = decryptedName.slice(0, -4);
+                    } else {
+                        decryptedName = 'descifrado_' + decryptedName;
+                    }
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = decryptedName;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    showResult('Archivo descifrado exitosamente (XOR) y descargado como: ' + decryptedName);
+                    document.getElementById('manual-decrypt-form').reset();
+                    document.getElementById('manual-decrypt-file-info').style.display = 'none';
+                } else {
+                    const error = await response.text();
+                    showResult('Error al descifrar (XOR): ' + error, false);
                 }
             } catch (error) {
                 showResult('Error de conexión: ' + error.message, false);

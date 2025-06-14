@@ -32,7 +32,7 @@ from flask import Flask, request, send_file, jsonify, render_template_string
 import os
 import tempfile
 import traceback
-from crypto_utils import encrypt_file, decrypt_file
+from crypto_utils import encrypt_file, decrypt_file, manual_encrypt_file, manual_decrypt_file
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -211,6 +211,165 @@ def decrypt():
     
     except Exception as e:
         print(f"Error inesperado en descifrado: {str(e)}")
+        print(traceback.format_exc())
+        return f'Error interno del servidor: {str(e)}', 500
+
+@app.route('/manual_encrypt', methods=['POST'])
+def manual_encrypt():
+    """
+    Endpoint para cifrado manual de archivos subidos por el usuario.
+    
+    Acepta un archivo y una contraseña mediante POST multipart/form-data,
+    cifra el archivo usando un cifrado manual (XOR) y devuelve el archivo cifrado para descarga.
+    
+    Form Data esperada:
+        file: Archivo a cifrar (multipart/form-data)
+        password: Contraseña para el cifrado (string)
+    
+    Returns:
+        Response: Archivo cifrado para descarga (.xor) o mensaje de error
+        
+    HTTP Status Codes:
+        200: Éxito - archivo cifrado devuelto
+        400: Error de entrada (archivo no seleccionado, sin contraseña)
+        500: Error interno del servidor
+        
+    Proceso:
+        1. Valida que se haya subido un archivo y proporcionado contraseña
+        2. Guarda el archivo en un directorio temporal
+        3. Cifra el archivo usando crypto_utils.manual_encrypt_file()
+        4. Devuelve el archivo cifrado para descarga automática
+        5. Limpia archivos temporales
+    """
+    try:
+        if 'file' not in request.files:
+            return 'No se seleccionó ningún archivo', 400
+        
+        file = request.files['file']
+        password = request.form.get('password')
+
+        if file.filename == '':
+            return 'No se seleccionó ningún archivo', 400
+        
+        if not password:
+            return 'No se proporcionó contraseña', 400
+
+        with tempfile.NamedTemporaryFile(delete=False) as temp_input:
+            file.save(temp_input.name)
+            temp_input_path = temp_input.name
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xor') as temp_output:
+            temp_output_path = temp_output.name
+        
+        try:
+            manual_encrypt_file(temp_input_path, password, temp_output_path)
+            
+            return send_file(
+                temp_output_path,
+                as_attachment=True,
+                download_name=secure_filename(file.filename) + '.xor',
+                mimetype='application/octet-stream'
+            )
+        
+        finally:
+            try:
+                os.unlink(temp_input_path)
+                if os.path.exists(temp_output_path):
+                    pass
+            except:
+                pass
+    
+    except Exception as e:
+        print(f"Error en cifrado manual: {str(e)}")
+        print(traceback.format_exc())
+        return f'Error al cifrar manualmente el archivo: {str(e)}', 500
+
+@app.route('/manual_decrypt', methods=['POST'])
+def manual_decrypt():
+    """
+    Endpoint para descifrar archivos cifrados manualmente subidos por el usuario.
+    
+    Acepta un archivo cifrado (.xor) y una contraseña mediante POST multipart/form-data,
+    descifra el archivo usando el cifrado manual (XOR) y devuelve 
+    el archivo original para descarga.
+    
+    Form Data esperada:
+        file: Archivo cifrado a descifrar (.xor) (multipart/form-data)
+        password: Contraseña utilizada en el cifrado (string)
+    
+    Returns:
+        Response: Archivo descifrado para descarga o mensaje de error específico
+        
+    HTTP Status Codes:
+        200: Éxito - archivo descifrado devuelto
+        400: Error de entrada (archivo no seleccionado, sin contraseña)
+        401: Contraseña incorrecta o archivo corrupto
+        500: Error interno del servidor
+        
+    Proceso:
+        1. Valida que se haya subido un archivo cifrado y proporcionado contraseña
+        2. Guarda el archivo en un directorio temporal
+        3. Descifra el archivo usando crypto_utils.manual_decrypt_file() con validaciones
+        4. Si la verificación de integridad pasa, devuelve el archivo original
+        5. Si falla, devuelve error específico (contraseña incorrecta/archivo corrupto)
+        6. Limpia archivos temporales
+        
+    Seguridad:
+        - Validación de contraseña mediante verificación de integridad
+        - Detección de archivos corruptos o modificados
+        - Limpieza automática de archivos temporales en caso de error
+    """
+    try:
+        if 'file' not in request.files:
+            return 'No se seleccionó ningún archivo', 400
+        
+        file = request.files['file']
+        password = request.form.get('password')
+        
+        if file.filename == '':
+            return 'No se seleccionó ningún archivo', 400
+        
+        if not password:
+            return 'No se proporcionó contraseña', 400
+            
+        with tempfile.NamedTemporaryFile(delete=False) as temp_input:
+            file.save(temp_input.name)
+            temp_input_path = temp_input.name
+        
+        with tempfile.NamedTemporaryFile(delete=False) as temp_output:
+            temp_output_path = temp_output.name
+        
+        try:
+            manual_decrypt_file(temp_input_path, password, temp_output_path)
+            
+            original_name = secure_filename(file.filename)
+            if original_name.endswith('.xor'):
+                decrypted_name = original_name[:-4]
+            else:
+                decrypted_name = 'descifrado_' + original_name
+            
+            return send_file(
+                temp_output_path,
+                as_attachment=True,
+                download_name=decrypted_name,
+                mimetype='application/octet-stream'
+            )
+        
+        finally:
+            try:
+                os.unlink(temp_input_path)
+                if os.path.exists(temp_output_path):
+                    pass
+            except:
+                pass
+    
+    except ValueError as e:
+        error_msg = str(e)
+        print(f"Error de validación en descifrado manual: {error_msg}")
+        return f'Contraseña incorrecta o archivo corrupto', 401
+    
+    except Exception as e:
+        print(f"Error inesperado en descifrado manual: {str(e)}")
         print(traceback.format_exc())
         return f'Error interno del servidor: {str(e)}', 500
 
