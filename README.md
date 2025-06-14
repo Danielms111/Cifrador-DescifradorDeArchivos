@@ -1,122 +1,65 @@
-# 🔐 Cifrador/Descifrador de Archivos
+#**Informe del Proyecto: Cifrador/Descifrador de Archivos con AES**
 
-Una aplicación segura para cifrar y descifrar archivos usando cifrado AES-256 con autenticación de integridad.
+## **Descripción General**
 
-## 🌟 Características
-
-- **Cifrado AES-256**: Usa el estándar de cifrado avanzado con claves de 256 bits
-- **Verificación de integridad**: Incluye hash SHA-256 para verificar la integridad del archivo
-- **Interfaz web moderna**: Frontend HTML con diseño responsivo
-- **Interfaz de línea de comandos**: Para uso desde terminal
-- **Seguridad robusta**: Derivación de claves PBKDF2 con 100,000 iteraciones
-
-## 🚀 Uso Rápido
-
-### Opción 1: Interfaz Web (Recomendado)
-
-1. **Ejecuta el archivo `run_server.bat`** (doble clic)
-2. **Abre tu navegador** y ve a: `http://localhost:5000`
-3. **Selecciona la pestaña** "Cifrar" o "Descifrar"
-4. **Sube tu archivo** y escribe la contraseña
-5. **Haz clic en el botón** correspondiente
-6. **El archivo procesado se descargará automáticamente**
-
-### Opción 2: Línea de Comandos
-
-```bash
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Ejecutar la aplicación
-python main.py
-```
-
-## 📋 Requisitos
-
-- Python 3.7 o superior
-- Bibliotecas de Python (se instalan automáticamente):
-  - `cryptography`
-  - `flask`
-
-## 🔧 Instalación Manual
-
-```bash
-# Clonar o descargar el proyecto
-cd Cifrador-DescifradorDeArchivos
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Para interfaz web
-python server.py
-
-# Para interfaz de comandos
-python main.py
-```
-
-## 🛡️ Seguridad
-
-- **Cifrado AES-256-CBC**: Uno de los algoritmos de cifrado más seguros
-- **Salt aleatorio**: Cada cifrado usa un salt único de 16 bytes
-- **IV aleatorio**: Vector de inicialización único para cada operación
-- **PBKDF2**: Derivación de claves con 100,000 iteraciones para resistir ataques de fuerza bruta
-- **Verificación SHA-256**: Hash del archivo original para verificar integridad
-
-## 📁 Estructura del Proyecto
-
-```
-Cifrador-DescifradorDeArchivos/
-├── crypto_utils.py      # Lógica de cifrado/descifrado
-├── main.py             # Interfaz de línea de comandos
-├── server.py           # Servidor web Flask
-├── index.html          # Frontend web
-├── run_server.bat      # Script para ejecutar fácilmente
-├── requirements.txt    # Dependencias de Python
-└── README.md          # Este archivo
-```
-
-## 🎨 Capturas de Pantalla
-
-La interfaz web incluye:
-- ✅ Diseño moderno y responsivo
-- ✅ Pestañas para cifrar/descifrar
-- ✅ Indicador de progreso
-- ✅ Mensajes de éxito/error
-- ✅ Información del archivo seleccionado
-- ✅ Descarga automática de archivos procesados
-
-## ⚠️ Importante
-
-- **Guarda tu contraseña de forma segura**: Sin ella no podrás descifrar tus archivos
-- **Los archivos cifrados tienen extensión .enc**: Mantén estos archivos seguros
-- **Usa contraseñas fuertes**: Combina letras, números y símbolos
-- **Haz copias de seguridad**: Tanto del archivo original como del cifrado
-
-## 🐛 Solución de Problemas
-
-### Error: "Python no encontrado"
-- Instala Python desde [python.org](https://python.org)
-- Asegúrate de marcar "Add Python to PATH" durante la instalación
-
-### Error: "pip no encontrado"
-- Reinstala Python con la opción "Add Python to PATH"
-- O usa: `python -m ensurepip --upgrade`
-
-### Error al instalar dependencias
-- Ejecuta: `pip install --upgrade pip`
-- Luego: `pip install -r requirements.txt`
-
-### El servidor no inicia
-- Verifica que el puerto 5000 no esté en uso
-- Cierra otros programas que puedan usar ese puerto
-
-## 📞 Soporte
-
-Si encuentras algún problema:
-1. Verifica que Python esté correctamente instalado
-2. Asegúrate de que todas las dependencias estén instaladas
-3. Revisa que no haya otros programas usando el puerto 5000
+Este proyecto consiste en la creación de un programa en Python que permite *cifrar y descifrar archivos* utilizando el algoritmo *AES-256* en modo *CBC. La clave de cifrado se genera a partir de una contraseña, usando el algoritmo **PBKDF2-HMAC-SHA256* con un salt aleatorio para mejorar la seguridad. Además, se calcula un *hash SHA-256* del archivo original para verificar su integridad durante el proceso de descifrado.
 
 ---
 
-**¡Mantén tus archivos seguros! 🔒**
+## **Funcionamiento**
+
+El programa tiene dos funcionalidades principales:
+
+1. *Cifrado de archivo*
+   - El usuario ingresa un archivo y una contraseña.
+   - Se genera un salt aleatorio (16 bytes).
+   - A partir de la contraseña y el salt, se deriva una clave de 256 bits usando PBKDF2.
+   - Se genera un vector de inicialización (IV) de 16 bytes para AES-CBC.
+   - Se calcula el hash SHA-256 del archivo original.
+   - Se cifra el contenido usando AES-256-CBC con relleno PKCS7.
+   - El archivo de salida contiene: salt + iv + hash + datos cifrados.
+
+2. *Descifrado de archivo*
+   - El usuario proporciona el archivo cifrado y la misma contraseña.
+   - Se extraen salt, iv, hash y datos cifrados.
+   - Se deriva nuevamente la clave usando PBKDF2.
+   - Se descifran los datos con AES-256-CBC.
+   - Se calcula el hash del archivo descifrado y se compara con el almacenado.
+   - Si el hash coincide, se escribe el archivo descifrado. Si no, se alerta integridad comprometida.
+
+---
+
+## **Proceso de Desarrollo**
+
+### **Elecciones Técnicas**
+
+- Se usó la librería *cryptography* únicamente para implementar los algoritmos criptográficos (AES, PBKDF2, PKCS7), tal como lo permite el criterio de evaluación.
+- Toda la lógica del proceso fue desarrollada manualmente: lectura y escritura de archivos, estructura binaria del archivo cifrado, verificación de integridad, y flujo interactivo.
+
+### **Estructura del archivo cifrado**
+#### $[$salt$ (16B)] + [$iv$ (16B)] + [$hash SHA-256$ (32B)] + [$datos cifrados$]$
+---
+
+## **Dificultades Encontradas**
+
+- *Evitar el uso de funciones que cifren archivos automáticamente* fue un reto clave. Para cumplir la consigna, se evitó usar funciones como encrypt_file() de librerías de alto nivel.
+- *Entender el manejo de padding* (relleno) fue necesario para poder cifrar bloques correctamente con AES.
+- Hubo que *controlar bien la lectura y escritura en binario*, ya que los archivos cifrados no pueden tratarse como texto.
+- Asegurar que *el mismo salt y iv no se repitan*, ya que rompería la seguridad del esquema AES-CBC.
+
+---
+
+## **Conclusiones**
+
+- El uso de *cryptography* permitió aplicar correctamente estándares criptográficos reales como AES y PBKDF2, mientras se conservó la lógica del proyecto como un desarrollo propio.
+- Se aprendió cómo se estructura un archivo cifrado de manera segura y cómo realizar una verificación de integridad basada en hash.
+- La experiencia permitió entender mejor la diferencia entre *usar una herramienta* y *entender el proceso criptográfico* subyacente.
+- Se recomienda usar esta implementación solo con fines educativos; en aplicaciones reales se deben reforzar aspectos como el manejo de errores y autenticación del mensaje (ej. HMAC).
+
+---
+## **Autores**
+
+- Luis Pinillos
+- Kevin Loachamin
+- Santiago Belalcázar
+- Daniel Montezuma
